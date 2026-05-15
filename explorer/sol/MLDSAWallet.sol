@@ -1,48 +1,38 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-contract MLDSAWalletCompat {
+contract MLDSAWallet {
     uint256 public constant PUBLIC_KEY_LENGTH = 1312;
-    uint256 public constant algorithm = 1; // Dilithium / ML-DSA direct
     address public constant ML_DSA_VERIFY_PRECOMPILE = address(0x1b);
 
     error InvalidPublicKeyLength(uint256 provided);
-    error InvalidPayer(address provided);
-    error UnauthorizedPayer(address caller, address expectedPayer);
     error SignatureVerificationCallFailed();
     error InvalidSignature();
     error Expired(uint256 currentTimestamp, uint256 deadline);
     error CallFailed(bytes revertData);
 
-    bytes public publicKey;
-    address public payer;
-    uint256 public nonce;
-
-    constructor(bytes memory publicKey_, address payer_) {
-        if (publicKey_.length != PUBLIC_KEY_LENGTH) {
-            revert InvalidPublicKeyLength(publicKey_.length);
-        }
-        if (payer_ == address(0)) {
-            revert InvalidPayer(payer_);
-        }
-
-        publicKey = publicKey_;
-        payer = payer_;
-    }
+    mapping(bytes32 => uint256) public nonces;
 
     receive() external payable {}
 
     function operationDigest(
+        bytes calldata publicKey,
         address target,
         uint256 value,
         bytes calldata data,
-        uint256 deadline,
-        uint256 nonce_
+        uint256 deadline
     ) public view returns (bytes32) {
+        if (publicKey.length != PUBLIC_KEY_LENGTH) {
+            revert InvalidPublicKeyLength(publicKey.length);
+        }
+
+        bytes32 keyHash = keccak256(publicKey);
+        uint256 nonce_ = nonces[keyHash];
         return keccak256(
             abi.encode(
                 block.chainid,
                 address(this),
+                keyHash,
                 nonce_,
                 target,
                 value,
@@ -53,21 +43,35 @@ contract MLDSAWalletCompat {
     }
 
     function execute(
+        bytes calldata publicKey,
         address target,
         uint256 value,
         bytes calldata data,
         uint256 deadline,
         bytes calldata signature
     ) external payable returns (bytes memory result) {
-        if (msg.sender != payer) {
-            revert UnauthorizedPayer(msg.sender, payer);
-        }
         if (block.timestamp > deadline) {
             revert Expired(block.timestamp, deadline);
         }
 
-        uint256 usedNonce = nonce;
-        bytes32 digest = operationDigest(target, value, data, deadline, usedNonce);
+        if (publicKey.length != PUBLIC_KEY_LENGTH) {
+            revert InvalidPublicKeyLength(publicKey.length);
+        }
+
+        bytes32 keyHash = keccak256(publicKey);
+        uint256 usedNonce = nonces[keyHash];
+        bytes32 digest = keccak256(
+            abi.encode(
+                block.chainid,
+                address(this),
+                keyHash,
+                usedNonce,
+                target,
+                value,
+                keccak256(data),
+                deadline
+            )
+        );
         bytes memory verifyInput =
             abi.encodePacked(publicKey, signature, bytes2(0x0000), digest);
 
@@ -79,7 +83,7 @@ contract MLDSAWalletCompat {
             revert InvalidSignature();
         }
 
-        nonce = usedNonce + 1;
+        nonces[keyHash] = usedNonce + 1;
 
         (ok, result) = target.call{value: value}(data);
         if (!ok) {

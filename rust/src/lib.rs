@@ -1,5 +1,5 @@
-use serde_json::Value;
 use serde_json::json;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -61,7 +61,8 @@ pub fn load_json(path: &Path) -> Result<Value> {
 }
 
 pub fn string_field<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
-    value.get(key)
+    value
+        .get(key)
         .and_then(Value::as_str)
         .ok_or_else(|| format!("missing string field `{key}`").into())
 }
@@ -75,7 +76,6 @@ pub fn compile_contracts() -> Result<HashMap<String, String>> {
             "--combined-json".to_string(),
             "abi,bin".to_string(),
             src_dir.join("MLDSAWallet.sol").display().to_string(),
-            src_dir.join("MLDSAWalletCompat.sol").display().to_string(),
             src_dir.join("DemoRecipient.sol").display().to_string(),
             src_dir.join("SimpleERC20.sol").display().to_string(),
         ],
@@ -223,7 +223,9 @@ pub fn chain_id(rpc_url: &str) -> Result<u64> {
 
 pub fn latest_block_timestamp(rpc_url: &str) -> Result<u64> {
     let value = cast_rpc(rpc_url, "eth_getBlockByNumber", Some("[\"latest\", false]"))?;
-    let block = value["result"].as_object().ok_or("missing latest block result")?;
+    let block = value["result"]
+        .as_object()
+        .ok_or("missing latest block result")?;
     let timestamp = block
         .get("timestamp")
         .and_then(Value::as_str)

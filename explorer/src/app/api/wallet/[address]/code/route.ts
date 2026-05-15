@@ -11,8 +11,11 @@ export async function GET(
 ) {
   try {
     const { address } = await context.params;
-    const kind = request.nextUrl.searchParams.get("kind") === "bytecode" ? "bytecode" : "source";
-    const source = await getMLDSAWalletSource();
+    const kind =
+      request.nextUrl.searchParams.get("kind") === "bytecode"
+        ? "bytecode"
+        : "source";
+    const source = kind === "source" ? await getMLDSAWalletSource() : "";
     const data = await getWalletCodeData(address, kind, source);
     if (!data) {
       return NextResponse.json({ error: "wallet not found" }, { status: 404 });
