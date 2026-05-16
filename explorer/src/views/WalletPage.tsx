@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import {
@@ -21,6 +21,8 @@ import {
   type WalletTransactionData,
 } from "@/lib/explorer";
 
+const TRANSACTION_POLL_INTERVAL_MS = 10_000;
+
 export function WalletPage({
   address,
   showBreadcrumbs = true,
@@ -32,9 +34,12 @@ export function WalletPage({
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [txData, setTxData] = useState<WalletTransactionData | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
+  const [liveError, setLiveError] = useState<string | null>(null);
   const [summaryReloadToken, setSummaryReloadToken] = useState(0);
   const [txReloadToken, setTxReloadToken] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPollingTransactions, setIsPollingTransactions] = useState(false);
+  const txPollInFlightRef = useRef(false);
   const [activeCodeTab, setActiveCodeTab] = useState<"source" | "bytecode">(
     "source",
   );
@@ -81,6 +86,7 @@ export function WalletPage({
             setTxError("Wallet transactions could not be loaded");
           } else {
             setTxData(next);
+            setLiveError(null);
           }
           setIsRefreshing(false);
         }
@@ -99,6 +105,55 @@ export function WalletPage({
       cancelled = true;
     };
   }, [address, txReloadToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function pollTransactions() {
+      if (txPollInFlightRef.current || document.visibilityState === "hidden") {
+        return;
+      }
+
+      txPollInFlightRef.current = true;
+      setIsPollingTransactions(true);
+
+      try {
+        const next = await getWalletTransactionData(address, true);
+        if (!cancelled) {
+          if (next) {
+            setTxData(next);
+            setTxError(null);
+            setLiveError(null);
+          } else {
+            setLiveError("Wallet transactions could not be loaded");
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setLiveError(
+            err instanceof Error
+              ? err.message
+              : "Failed to refresh wallet transactions",
+          );
+        }
+      } finally {
+        txPollInFlightRef.current = false;
+        if (!cancelled) {
+          setIsPollingTransactions(false);
+        }
+      }
+    }
+
+    const intervalId = window.setInterval(
+      pollTransactions,
+      TRANSACTION_POLL_INTERVAL_MS,
+    );
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [address]);
 
   useEffect(() => {
     let cancelled = false;
@@ -242,9 +297,20 @@ export function WalletPage({
       <section className="stack">
         <div className="row">
           <h2 className="section-title">Transactions</h2>
-          {txData ? (
-            <span className="badge info">{transactionCountLabel}</span>
-          ) : null}
+          <div className="transaction-header-actions">
+            {txData ? (
+              <span className="badge info">{transactionCountLabel}</span>
+            ) : null}
+            <span
+              className={`badge live-status${liveError ? " warning" : " success"}${isPollingTransactions ? " checking" : ""}`}
+            >
+              {liveError
+                ? "Live delayed"
+                : isPollingTransactions
+                  ? "Scanning..."
+                  : "Live"}
+            </span>
+          </div>
         </div>
         {txError ? (
           <ErrorBlock message={txError} />

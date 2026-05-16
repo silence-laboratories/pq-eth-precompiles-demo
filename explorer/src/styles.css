@@ -229,6 +229,29 @@ code {
   table-layout: fixed;
 }
 
+.transaction-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.live-status {
+  gap: 6px;
+}
+
+.live-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.live-status.checking::before {
+  animation: live-pulse 1s ease-in-out infinite;
+}
+
 .transactions-table th {
   position: sticky;
   top: 0;
@@ -374,6 +397,17 @@ code {
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
   }
 }
 
