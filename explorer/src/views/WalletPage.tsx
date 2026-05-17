@@ -21,7 +21,7 @@ import {
   type WalletTransactionData,
 } from "@/lib/explorer";
 
-const TRANSACTION_POLL_INTERVAL_MS = 10_000;
+const TRANSACTION_POLL_INTERVAL_MS = 2_000;
 
 export function WalletPage({
   address,
