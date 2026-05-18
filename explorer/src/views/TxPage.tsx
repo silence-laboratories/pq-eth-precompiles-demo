@@ -8,10 +8,81 @@ import {
   formatTimestamp,
   getTransactionPageData,
   renderStatusBadge,
-  summarizeTrace,
   type TxPageData,
 } from "@/lib/explorer";
 import { truncateMiddle } from "@/lib/decoders";
+
+const ADDRESS_PATTERN = /0x[a-fA-F0-9]{40}/g;
+
+function formatInlineAddresses(value: string) {
+  return value.replace(ADDRESS_PATTERN, (address) =>
+    truncateMiddle(address, 8),
+  );
+}
+
+function formatDeadline(deadline: string) {
+  const timestamp = Number(deadline);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) {
+    return null;
+  }
+  return formatTimestamp(timestamp);
+}
+
+function formatByteCount(value: number) {
+  return new Intl.NumberFormat().format(value);
+}
+
+function formatHexQuantity(value: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  try {
+    return new Intl.NumberFormat().format(BigInt(value));
+  } catch {
+    return value;
+  }
+}
+
+function renderPqVerificationEvidence(trace: TxPageData["pqVerification"]) {
+  if (!trace.traceAvailable) {
+    return (
+      <div className="proof-callout warning">
+        <div className="proof-line">Trace unavailable</div>
+        <div>PQ verification cannot be proven from this RPC node.</div>
+      </div>
+    );
+  }
+
+  if (!trace.proven) {
+    return (
+      <div className="proof-callout warning">
+        <div className="proof-line">PQ verification not proven</div>
+        <div>
+          No successful <span className="code-pill hash-value">STATICCALL</span>{" "}
+          to <span className="code-pill hash-value">precompile 0x1b</span> was
+          found.
+        </div>
+      </div>
+    );
+  }
+
+  const hit = trace.invocations.find((entry) => entry.success);
+
+  return (
+    <div className="proof-callout">
+      <div className="proof-line">PQ verification passed:</div>
+      <div>
+        <span className="code-pill hash-value">STATICCALL</span> to{" "}
+        <span className="code-pill hash-value">precompile 0x1b</span>
+        <span>successfully made by the MLDSAWallet contract </span>
+        <span className="code-pill hash-value" title={hit?.from ?? ""}>
+          {truncateMiddle(hit?.from ?? "", 12)}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export function TxPage({ hash }: { hash: string }) {
   const [data, setData] = useState<TxPageData | null>(null);
@@ -71,7 +142,7 @@ export function TxPage({ hash }: { hash: string }) {
       <section className="grid two">
         <div className="card">
           <h2 className="section-title">Summary</h2>
-          <dl className="kv">
+          <dl className="kv call-kv">
             <dt>Transaction hash</dt>
             <dd>
               <a
@@ -84,17 +155,35 @@ export function TxPage({ hash }: { hash: string }) {
               </a>
             </dd>
             <dt>Type</dt>
-            <dd>{data.type}</dd>
+            <dd>
+              <span className="code-pill">{data.type}</span>
+            </dd>
             <dt>From</dt>
-            <dd className="mono">{data.from}</dd>
+            <dd>
+              <span className="code-pill hash-value" title={data.from}>
+                {truncateMiddle(data.from, 12)}
+              </span>
+            </dd>
             <dt>To</dt>
-            <dd className="mono">{data.to ?? "contract creation"}</dd>
+            <dd>
+              {data.to ? (
+                <span className="code-pill hash-value" title={data.to}>
+                  {truncateMiddle(data.to, 12)}
+                </span>
+              ) : (
+                "contract creation"
+              )}
+            </dd>
             <dt>Block</dt>
-            <dd>{data.blockNumber ?? "—"}</dd>
+            <dd>
+              {data.blockNumber === null
+                ? "—"
+                : new Intl.NumberFormat().format(data.blockNumber)}
+            </dd>
             <dt>Timestamp</dt>
             <dd>{formatTimestamp(data.timestamp)}</dd>
             <dt>Gas used</dt>
-            <dd>{data.gasUsed ?? "—"}</dd>
+            <dd>{formatHexQuantity(data.gasUsed)}</dd>
             <dt>Value</dt>
             <dd>{data.valueEth} ETH</dd>
           </dl>
@@ -114,9 +203,7 @@ export function TxPage({ hash }: { hash: string }) {
               Precompile {data.pqVerification.precompileAddress}
             </span>
           </div>
-          <p className="muted proof-copy">
-            {summarizeTrace(data.pqVerification)}
-          </p>
+          {renderPqVerificationEvidence(data.pqVerification)}
           {data.pqVerification.invocations.length > 0 ? (
             <div className="table-scroll">
               <table className="table table-tight">
@@ -152,40 +239,83 @@ export function TxPage({ hash }: { hash: string }) {
         <h2 className="section-title">Decoded Wallet Call</h2>
         {data.decodedExecution ? (
           <div className="card">
-            <dl className="kv">
+            <dl className="kv call-kv">
               <dt>Wallet method</dt>
-              <dd>{data.decodedExecution.method}</dd>
+              <dd>
+                <span className="code-pill">
+                  {data.decodedExecution.method}
+                </span>
+              </dd>
               <dt>Target</dt>
-              <dd className="mono">{data.decodedExecution.target}</dd>
+              <dd>
+                <span
+                  className="code-pill hash-value"
+                  title={data.decodedExecution.target}
+                >
+                  {truncateMiddle(data.decodedExecution.target, 12)}
+                </span>
+              </dd>
               <dt>Value</dt>
               <dd>
-                {data.decodedExecution.valueEth} ETH (
-                {data.decodedExecution.valueWei} wei)
+                <span>{data.decodedExecution.valueEth} ETH</span>
+                <span className="detail-meta mono">
+                  {data.decodedExecution.valueWei} wei
+                </span>
               </dd>
               <dt>Deadline</dt>
-              <dd>{data.decodedExecution.deadline}</dd>
+              <dd>
+                <span>
+                  {formatDeadline(data.decodedExecution.deadline) ??
+                    data.decodedExecution.deadline}
+                </span>
+                {formatDeadline(data.decodedExecution.deadline) ? (
+                  <span className="detail-meta mono">
+                    {data.decodedExecution.deadline}
+                  </span>
+                ) : null}
+              </dd>
               <dt>Signature length</dt>
-              <dd>{data.decodedExecution.signatureLength} bytes</dd>
+              <dd>
+                {formatByteCount(data.decodedExecution.signatureLength)} bytes
+              </dd>
               {data.decodedExecution.publicKey ? (
                 <>
                   <dt>Public key</dt>
-                  <dd className="mono">
-                    {truncateMiddle(data.decodedExecution.publicKey, 28)}
+                  <dd>
+                    <span
+                      className="code-pill hash-value"
+                      title={data.decodedExecution.publicKey}
+                    >
+                      {truncateMiddle(data.decodedExecution.publicKey, 28)}
+                    </span>
                   </dd>
                 </>
               ) : null}
               {data.decodedExecution.publicKeyHash ? (
                 <>
                   <dt>Public key hash</dt>
-                  <dd className="mono">
-                    {data.decodedExecution.publicKeyHash}
+                  <dd>
+                    <span
+                      className="code-pill hash-value"
+                      title={data.decodedExecution.publicKeyHash}
+                    >
+                      {truncateMiddle(data.decodedExecution.publicKeyHash, 28)}
+                    </span>
                   </dd>
                 </>
               ) : null}
               <dt>Delegate action</dt>
-              <dd>{data.decodedExecution.targetCall.summary}</dd>
+              <dd title={data.decodedExecution.targetCall.summary}>
+                {formatInlineAddresses(
+                  data.decodedExecution.targetCall.summary,
+                )}
+              </dd>
               <dt>Inner calldata</dt>
-              <dd className="mono">{data.decodedExecution.data}</dd>
+              <dd>
+                <code className="detail-code-block">
+                  {data.decodedExecution.data}
+                </code>
+              </dd>
             </dl>
           </div>
         ) : (

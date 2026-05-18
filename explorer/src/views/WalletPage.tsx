@@ -22,6 +22,24 @@ import {
 } from "@/lib/explorer";
 
 const TRANSACTION_POLL_INTERVAL_MS = 2_000;
+const ADDRESS_PATTERN = /0x[a-fA-F0-9]{40}/g;
+
+function formatActionSummary(summary: string) {
+  return summary.replace(ADDRESS_PATTERN, (value) => truncateMiddle(value, 8));
+}
+
+function renderSignatureScheme(kind: "execute" | "other") {
+  if (kind !== "execute") {
+    return <span className="signature-scheme-badge secondary">ECDSA</span>;
+  }
+
+  return (
+    <span className="signature-scheme-badge pq">
+      <span>Dilithium-2</span>
+      <span className="scheme-mode">Direct</span>
+    </span>
+  );
+}
 
 export function WalletPage({
   address,
@@ -266,6 +284,7 @@ export function WalletPage({
           Runtime-key MLDSAWallet. Post-Quantum Public key comes from calldata
           on each execute call.
         </p>
+        <span className="muted">Testnet: 65.109.17.230:33952</span>
       </section>
 
       <section className="grid two">
@@ -331,6 +350,7 @@ export function WalletPage({
                         <th>Hash</th>
                         <th>Kind</th>
                         <th>Action</th>
+                        <th>Scheme</th>
                         <th>Status</th>
                         <th>Block Time</th>
                       </tr>
@@ -350,7 +370,13 @@ export function WalletPage({
                               </Link>
                             </td>
                             <td>{tx.kind}</td>
-                            <td>{tx.actionSummary}</td>
+                            <td
+                              className="transaction-action"
+                              title={tx.actionSummary}
+                            >
+                              {formatActionSummary(tx.actionSummary)}
+                            </td>
+                            <td>{renderSignatureScheme(tx.kind)}</td>
                             <td>
                               <span className={status.className}>
                                 {status.label}
@@ -371,7 +397,7 @@ export function WalletPage({
 
       <section className="stack">
         <div className="row">
-          <h2 className="section-title">Contract Code</h2>
+          <h2 className="section-title">MLDSAWallet Contract</h2>
           <div className="actions">
             <div
               className="tab-strip"
@@ -401,8 +427,8 @@ export function WalletPage({
           <div className="code-toolbar">
             <span className="muted">
               {activeCodeTab === "source"
-                ? "Local verified source served by the explorer backend"
-                : "Live on-chain bytecode fetched with eth_getCode. Copy it into a decompiler that accepts raw bytecode."}
+                ? "Contract Source Code"
+                : "Deployed Bytecode"}
             </span>
           </div>
           {activeCodeTab === "source" ? (

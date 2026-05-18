@@ -34,12 +34,14 @@ export function TransactionsSkeleton({ rows = 4 }: { rows?: number }) {
           <span className="skeleton skeleton-line short" />
           <span className="skeleton skeleton-line short" />
           <span className="skeleton skeleton-line short" />
+          <span className="skeleton skeleton-line short" />
         </div>
         {Array.from({ length: rows }).map((_, index) => (
           <div className="skeleton-row" key={index}>
             <span className="skeleton skeleton-line long" />
             <span className="skeleton skeleton-line medium" />
             <span className="skeleton skeleton-line medium" />
+            <span className="skeleton skeleton-chip" />
             <span className="skeleton skeleton-chip" />
             <span className="skeleton skeleton-line medium" />
           </div>

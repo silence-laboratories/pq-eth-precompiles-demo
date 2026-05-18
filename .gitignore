@@ -1,2 +1,4 @@
 state/ml_dsa_keypair.json
 rust/target/
+config.bat
+node_modules
