@@ -1,14 +1,14 @@
 {
   "chain_id": 3151908,
-  "demo_recipient_address": "0x248599eb1beb1bc062d625e40a93b8f4e9833083",
-  "demo_recipient_deploy_tx": "0x4e96c1b4c2e21e753b2f8b4c52820bad10aa1ccb963e32fbeed08c92cd939416",
-  "rpc_url": "http://65.109.17.230:33952",
-  "token_address": "0x37dc82c6c1f37608d4e1567bc91b4eb7ee7d76f1",
+  "demo_recipient_address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+  "demo_recipient_deploy_tx": "0xd6c486e39f0a74d3be8275e6c85093681e61271cfb0b6597cd2d3220d3ad04ac",
+  "rpc_url": "https://pq-precompiles-devnet.demo.silencelaboratories.com",
+  "token_address": "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
   "token_decimals": "18",
-  "token_deploy_tx": "0xb24bc16dbc828be3ddcc1aaa7803b381adc4d00235595b2ea7ae965a0e8ad0ee",
+  "token_deploy_tx": "0x44d2519380c50b354a02d506f01cfac266283fe4c2e4981ba20f3a686d0c520c",
   "token_name": "PQ Demo Token",
   "token_supply": "1000000000000000000000",
   "token_symbol": "PQT",
-  "wallet_address": "0x02f9e4cdaa607688bef884d6bb6d18e2e46788d0",
-  "wallet_deploy_tx": "0xa5d3400074d076df94979d0865cc0515410ed4b6e05a85b232c29f23c9d7756f"
+  "wallet_address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+  "wallet_deploy_tx": "0x589ef0a03d329e33d006e563853fe6d28d2b7a9eed06a6fdec7c76a3a9bd5c45"
 }

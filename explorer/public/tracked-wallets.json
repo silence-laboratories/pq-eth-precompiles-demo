@@ -1,10 +1,10 @@
 [
   {
-    "address": "0x02f9e4cdaa607688bef884d6bb6d18e2e46788d0",
+    "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
     "label": "MLDSAWallet",
     "chainId": 3151908,
-    "demoRecipientAddress": "0x248599eb1beb1bc062d625e40a93b8f4e9833083",
-    "tokenAddress": "0x37dc82c6c1f37608d4e1567bc91b4eb7ee7d76f1",
+    "demoRecipientAddress": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+    "tokenAddress": "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
     "tokenSymbol": "PQT",
     "tokenName": "PQ Demo Token"
   }
