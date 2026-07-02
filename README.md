@@ -22,12 +22,12 @@ High-level flow:
 - `rust/src/bin/deploy_token.rs`: deploy only `SimpleERC20` for an existing wallet
 - `rust/src/bin/verify_deployment.rs`: check deployment state and optional per-key nonce
 - `rust/src/bin/execute_pq_tx.rs`: sign an operation and relay either a demo call or ERC20 transfer
-- `exec.sh`: tiny shell wrapper with `keygen`, `deploy`, `verify`, and `execute` subcommands
+- `exec.sh`: tiny shell wrapper with `keygen`, `deploy`, `deploy-token`, `verify`, and `execute` subcommands
 
 ## Requirements
 
 - `solc` 0.8.25+ on your path
-- `cast` on your path
+- Foundry `cast` on your path
 - Rust / Cargo
 
 ## Rust Tools
@@ -38,13 +38,14 @@ Available binaries:
 
 - `keygen`
 - `deploy`
+- `deploy_token`
 - `verify_deployment`
 - `execute_pq_tx`
 
 Build them with:
 
 ```bash
-cargo build --offline --manifest-path ./rust/Cargo.toml
+cargo build --manifest-path ./rust/Cargo.toml
 ```
 
 Examples:
@@ -52,28 +53,34 @@ Examples:
 ```bash
 ./rust/target/debug/keygen
 
-RPC_URL=http://65.109.17.230:33952 PRIVATE_KEY=... \
+RPC_URL=<...> PRIVATE_KEY=<...> \
   ./rust/target/debug/deploy
 
-RPC_URL=http://65.109.17.230:33952 \
+RPC_URL=<...> PRIVATE_KEY=<...> \
+  ./rust/target/debug/deploy_token
+
+RPC_URL=<...> \
   ./rust/target/debug/verify_deployment
 
-RPC_URL=http://65.109.17.230:33952 \
+RPC_URL=<...> \
   ./rust/target/debug/execute_pq_tx --dry-run-only
 ```
 
 ## One-Command Wrapper
 
-From inside `./ml-dsa_wallet`:
+From inside the project root:
 
 ```bash
 ./exec.sh keygen
-RPC_URL=http://65.109.17.230:33952 PRIVATE_KEY=... ./exec.sh deploy
-RPC_URL=http://65.109.17.230:33952 PRIVATE_KEY=... ./exec.sh deploy-token
-RPC_URL=http://65.109.17.230:33952 ./exec.sh verify
-RPC_URL=http://65.109.17.230:33952 ./exec.sh execute --dry-run-only
-RPC_URL=http://65.109.17.230:33952 PRIVATE_KEY=... ./exec.sh execute --note "hello from phone wallet"
-RPC_URL=http://65.109.17.230:33952 PRIVATE_KEY=... ./exec.sh execute --erc20-recipient 0x... --erc20-amount 1000000000000000000
+
+export RPC_URL=<...>
+export PRIVATE_KEY=<...>
+./exec.sh deploy
+./exec.sh deploy-token
+./exec.sh verify
+./exec.sh execute --dry-run-only
+./exec.sh execute --note "hello from phone wallet"
+./exec.sh execute --erc20-recipient 0x... --erc20-amount 1000000000000000000
 ```
 
 ## 1. Generate ML-DSA keys
@@ -84,21 +91,21 @@ RPC_URL=http://65.109.17.230:33952 PRIVATE_KEY=... ./exec.sh execute --erc20-rec
 
 This writes:
 
-- `ml-dsa_wallet/state/ml_dsa_keypair.json`
+- `state/ml_dsa_keypair.json`
 
 ## 2. Deploy contracts
 
 Set your relayer key and RPC:
 
 ```bash
-export RPC_URL=http://65.109.17.230:33952
+export RPC_URL=https://pq-precompiles-devnet.demo.silencelaboratories.com
 export PRIVATE_KEY=...
 ./exec.sh deploy
 ```
 
 This writes:
 
-- `ml-dsa_wallet/state/deployment.json`
+- `state/deployment.json`
 
 The deploy step does not require the ML-DSA keypair because the contract does not store a public key on-chain.
 It also deploys `SimpleERC20` and mints the initial supply to `MLDSAWallet`, so the verifier contract can send tokens after PQ verification.

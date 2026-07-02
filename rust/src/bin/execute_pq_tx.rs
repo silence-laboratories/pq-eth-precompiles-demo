@@ -1,7 +1,7 @@
 use ml_dsa_wallet_tools::{
     cast_abi_encode, cast_call, cast_calldata, cast_keccak, cast_send, chain_id, ensure_0x,
-    flag_value, has_flag, latest_block_timestamp, load_json, state_dir, string_field, strip_0x,
-    Result,
+    flag_value, has_flag, latest_block_timestamp, load_required_json, state_dir, string_field,
+    strip_0x, Result,
 };
 use pqcrypto_dilithium::dilithium2;
 use pqcrypto_traits::sign::{DetachedSignature as _, SecretKey as _};
@@ -35,8 +35,16 @@ fn main() -> Result<()> {
         return Err("missing --private-key or PRIVATE_KEY".into());
     }
 
-    let deployment = load_json(&deployment_path)?;
-    let key_data = load_json(&key_file)?;
+    let deployment = load_required_json(
+        &deployment_path,
+        "deployment metadata",
+        "run `./exec.sh deploy` or pass an existing deployment file with `--deployment <path>`",
+    )?;
+    let key_data = load_required_json(
+        &key_file,
+        "ML-DSA keypair",
+        "run `./exec.sh keygen` or pass an existing keypair with `--key-file <path>`",
+    )?;
     let wallet = string_field(&deployment, "wallet_address")?;
     let demo_recipient = string_field(&deployment, "demo_recipient_address")?;
     let token = string_field(&deployment, "token_address")?;

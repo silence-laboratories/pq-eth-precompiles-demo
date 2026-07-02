@@ -2,6 +2,7 @@ use serde_json::json;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -34,7 +35,15 @@ pub fn run_command(program: &str, args: &[String], cwd: Option<&Path>) -> Result
     if let Some(dir) = cwd {
         command.current_dir(dir);
     }
-    let output = command.output()?;
+    let output = command.output().map_err(|error| {
+        if error.kind() == ErrorKind::NotFound {
+            format!(
+                "required command `{program}` was not found on PATH\nPrerequisite: install `{program}` and make sure it is available in PATH"
+            )
+        } else {
+            format!("failed to run `{program}`: {error}")
+        }
+    })?;
     if !output.status.success() {
         return Err(format!(
             "{} {:?} failed with status {}: {}",
@@ -57,7 +66,33 @@ pub fn save_json(path: &Path, value: &Value) -> Result<()> {
 }
 
 pub fn load_json(path: &Path) -> Result<Value> {
-    Ok(serde_json::from_str(&fs::read_to_string(path)?)?)
+    let contents = fs::read_to_string(path)
+        .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+    serde_json::from_str(&contents)
+        .map_err(|error| format!("failed to parse {}: {error}", path.display()).into())
+}
+
+pub fn load_required_json(path: &Path, description: &str, prerequisite: &str) -> Result<Value> {
+    let contents = fs::read_to_string(path).map_err(|error| {
+        if error.kind() == ErrorKind::NotFound {
+            format!(
+                "{description} not found at {}\nPrerequisite: {prerequisite}",
+                path.display()
+            )
+        } else {
+            format!(
+                "failed to read {description} at {}: {error}",
+                path.display()
+            )
+        }
+    })?;
+    serde_json::from_str(&contents).map_err(|error| {
+        format!(
+            "failed to parse {description} at {}: {error}",
+            path.display()
+        )
+        .into()
+    })
 }
 
 pub fn string_field<'a>(value: &'a Value, key: &str) -> Result<&'a str> {

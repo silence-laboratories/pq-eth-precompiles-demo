@@ -14,10 +14,10 @@ Usage:
 
 Examples:
   ./exec.sh keygen
-  RPC_URL=http://65.109.17.230:33952 PRIVATE_KEY=... ./exec.sh deploy
-  RPC_URL=http://65.109.17.230:33952 PRIVATE_KEY=... ./exec.sh deploy-token
-  RPC_URL=http://65.109.17.230:33952 ./exec.sh verify
-  RPC_URL=http://65.109.17.230:33952 ./exec.sh execute --dry-run-only
+  RPC_URL=https://pq-precompiles-devnet.demo.silencelaboratories.com PRIVATE_KEY=... ./exec.sh deploy
+  RPC_URL=https://pq-precompiles-devnet.demo.silencelaboratories.com PRIVATE_KEY=... ./exec.sh deploy-token
+  RPC_URL=https://pq-precompiles-devnet.demo.silencelaboratories.com ./exec.sh verify
+  RPC_URL=https://pq-precompiles-devnet.demo.silencelaboratories.com ./exec.sh execute --dry-run-only
 EOF
 }
 
@@ -55,5 +55,5 @@ case "$subcommand" in
     ;;
 esac
 
-cargo build --offline --manifest-path "$ROOT/rust/Cargo.toml" >/dev/null
+cargo build --manifest-path "$ROOT/rust/Cargo.toml" >/dev/null
 exec "$ROOT/rust/target/debug/$bin" "$@"

@@ -1,6 +1,6 @@
 use ml_dsa_wallet_tools::{
     cast_abi_encode, cast_send_create, chain_id, compile_contracts, flag_value, load_json,
-    save_json, state_dir, string_field, Result,
+    load_required_json, save_json, state_dir, string_field, Result,
 };
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -27,7 +27,11 @@ fn main() -> Result<()> {
     let wallet_address = if let Some(wallet) = flag_value(&args, "--wallet") {
         wallet
     } else {
-        let existing = load_json(&out_path)?;
+        let existing = load_required_json(
+            &out_path,
+            "deployment metadata",
+            "run `./exec.sh deploy`, pass `--wallet <address>`, or pass an existing deployment file with `--out <path>`",
+        )?;
         string_field(&existing, "wallet_address")?.to_string()
     };
 
