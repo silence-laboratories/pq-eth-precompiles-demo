@@ -139,6 +139,59 @@ When `--erc20-recipient` is present, the signed action becomes:
 - `value = 0`
 
 
+## Deploying against the re-hosted Kurtosis devnet
+
+The PQ precompile network from [`silence-laboratories/pq-eth-precompiles`](https://github.com/silence-laboratories/pq-eth-precompiles) (Kurtosis + `Giulio2002/erigon:docker_pq-precompiles`) is re-hosted on Coolify at:
+
+- RPC: `https://pq-precompiles-devnet.demo.silencelaboratories.com`
+
+Because this devnet's Kurtosis enclave is recreated from scratch on every redeploy (fresh genesis each time), any contracts deployed against it are wiped out whenever that app redeploys. There is no persistent state — contracts must be redeployed after every re-hosted-devnet redeploy.
+
+### 0. Install prerequisites
+
+```bash
+# Foundry (provides `cast`)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# solc 0.8.25 static binary
+curl -L -o ~/.local/bin/solc \
+  https://github.com/ethereum/solidity/releases/download/v0.8.25/solc-static-linux
+chmod +x ~/.local/bin/solc
+```
+
+### 1. Build the Rust tools
+
+```bash
+cargo build --manifest-path ./rust/Cargo.toml
+```
+
+(Don't use `--offline` on a fresh checkout — the `pqcrypto-*` crates need to be fetched first.)
+
+### 2. Deploy contracts
+
+Use a funded devnet key. The Kurtosis `prefunded_accounts` in `network_params.yaml` uses the well-known Anvil/Hardhat test account #0 (public test key, fine for a throwaway devnet — never use it anywhere with real funds):
+
+```bash
+export RPC_URL=https://pq-precompiles-devnet.demo.silencelaboratories.com
+export PRIVATE_KEY=REDACTED_ANVIL_TEST_KEY
+./exec.sh deploy
+```
+
+This writes `state/deployment.json` with the new `wallet_address`, `demo_recipient_address`, and `token_address`.
+
+### 3. Point the explorer at the new addresses
+
+Update `explorer/public/tracked-wallets.json` with the values from `state/deployment.json` (`wallet_address` → `address`, `demo_recipient_address` → `demoRecipientAddress`, `token_address` → `tokenAddress`), commit, and redeploy the `pq-precompiles-devnet-explorer` Coolify app so it picks up the new `tracked-wallets.json`.
+
+### Known limitation: PQ verification currently fails
+
+`./exec.sh execute` (and its `--dry-run-only` mode) will revert with `InvalidSignature()` on this devnet. Root cause: `docker_pq-precompiles` only registers the PQ precompiles (`0x12`-`0x1c`, including the Dilithium/ML-DSA verifier at `0x1b` this repo calls) under the **Osaka** EL fork (see `execution/vm/contracts.go`, `PrecompiledContractsOsaka`). The re-hosted devnet only activates Electra/Prague (`electra_fork_epoch: 0` in `network_params.yaml`) — Osaka isn't enabled, so `0x1b` is just an empty address that returns `0x` instead of running real verification.
+
+Enabling Osaka requires `fulu_fork_epoch` (the CL name for the same fork boundary), which currently breaks Lighthouse genesis generation on this Kurtosis toolchain version (`ethereum-package@5.0.1` + `ethereum-genesis-generator:4.0.4` can't produce a valid Fulu SSZ genesis for Lighthouse). See [silent-shard-issues#1693](https://github.com/silence-laboratories/silent-shard-issues/issues/1693) for the ongoing toolchain-compatibility discussion.
+
+Deploying contracts and reading state (`./exec.sh verify`, ERC20 balance checks) works fine on this devnet — only the on-chain PQ signature verification step is blocked until Osaka is activated.
+
 ## Signed payload
 
 The wallet signs the digest:
