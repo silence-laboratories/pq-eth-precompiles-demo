@@ -170,11 +170,11 @@ cargo build --manifest-path ./rust/Cargo.toml
 
 ### 2. Deploy contracts
 
-Use a funded devnet key. The Kurtosis `prefunded_accounts` in `network_params.yaml` uses the well-known Anvil/Hardhat test account #0 (public test key, fine for a throwaway devnet — never use it anywhere with real funds):
+Use a funded devnet key. The Kurtosis `prefunded_accounts` in `network_params.yaml` uses the well-known Anvil/Hardhat test account #0 — look up its public test private key (never use it anywhere with real funds):
 
 ```bash
 export RPC_URL=https://pq-precompiles-devnet.demo.silencelaboratories.com
-export PRIVATE_KEY=REDACTED_ANVIL_TEST_KEY
+export PRIVATE_KEY=<anvil-account-0-private-key>
 ./exec.sh deploy
 ```
 
