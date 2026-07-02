@@ -1,6 +1,6 @@
 use ml_dsa_wallet_tools::{
-    cast_call, cast_keccak, cast_rpc, ensure_0x, flag_value, load_json, state_dir, string_field,
-    strip_0x, Result,
+    cast_call, cast_keccak, cast_rpc, ensure_0x, flag_value, load_json, load_required_json,
+    state_dir, string_field, strip_0x, Result,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -18,7 +18,11 @@ fn main() -> Result<()> {
         .map(PathBuf::from)
         .unwrap_or_else(|| state_dir().join("ml_dsa_keypair.json"));
 
-    let deployment = load_json(&deployment_path)?;
+    let deployment = load_required_json(
+        &deployment_path,
+        "deployment metadata",
+        "run `./exec.sh deploy` or pass an existing deployment file with `--deployment <path>`",
+    )?;
     let wallet = string_field(&deployment, "wallet_address")?;
     let recipient = string_field(&deployment, "demo_recipient_address")?;
     let token = string_field(&deployment, "token_address")?;
